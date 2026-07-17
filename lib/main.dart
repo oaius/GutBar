@@ -2,13 +2,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'services/reflection_service.dart';
+import 'services/life_profile_service.dart';
 import 'widgets/reflection_entry_sheet.dart';
+import 'widgets/progress_bar_widget.dart';
+import 'screens/life_progress_screen.dart';
 import 'screens/reflection_log_screen.dart';
 import 'utils/year_progress.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ReflectionService.init();
+  await LifeProfileService.init();
   runApp(const MyApp());
 }
 
@@ -97,69 +101,12 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Headline
-          Text(
-            '$percent% of ${_now.year} has passed',
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          // Days left (supporting info)
-          Text(
-            '${daysLeftInYear(_now)} days left in ${_now.year}',
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 13,
-              color: Color(0xFF888888),
-            ),
-          ),
-          const SizedBox(height: 6),
-          // Subtitle date
-          Text(
-            _formatDate(),
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 13,
-              color: Color(0xFF888888),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              height: 20,
-              child: Stack(
-                children: [
-                  // underlying progress indicator
-                  LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: const Color(0xFF2A2A2A),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFF00CC44),
-                    ),
-                    minHeight: 20,
-                  ),
-                  // tick marks overlay
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        painter: _TickPainter(
-                          positions: const [0.25, 0.5, 0.75],
-                          color: Colors.white24,
-                          inset: 3,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ProgressBarWidget(
+            percentage: progress,
+            primaryText: '$percent% of ${_now.year} has passed',
+            secondaryText: '${daysLeftInYear(_now)} days left in ${_now.year}',
+            detailText: _formatDate(),
+            tickPositions: const [0.25, 0.5, 0.75],
           ),
           const SizedBox(height: 12),
           // Reflection prompt + log button
@@ -233,6 +180,21 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                 onPressed: () async {
                   await Navigator.of(context).push(
                     MaterialPageRoute(
+                      builder: (_) => const LifeProgressScreen(),
+                    ),
+                  );
+                  setState(() {});
+                },
+                icon: const Icon(
+                  Icons.person_outline,
+                  color: Color(0xFF888888),
+                ),
+                tooltip: 'Life progress',
+              ),
+              IconButton(
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
                       builder: (_) => const ReflectionLogScreen(),
                     ),
                   );
@@ -246,40 +208,5 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
         ],
       ),
     );
-  }
-}
-
-class _TickPainter extends CustomPainter {
-  final List<double> positions;
-  final Color color;
-  final double inset;
-
-  _TickPainter({
-    required this.positions,
-    required this.color,
-    this.inset = 3.0,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-
-    final top = inset;
-    final bottom = size.height - inset;
-
-    for (final p in positions) {
-      final x = (p.clamp(0.0, 1.0)) * size.width;
-      canvas.drawLine(Offset(x, top), Offset(x, bottom), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _TickPainter oldDelegate) {
-    return oldDelegate.positions != positions ||
-        oldDelegate.color != color ||
-        oldDelegate.inset != inset;
   }
 }
