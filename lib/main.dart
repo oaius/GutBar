@@ -1,7 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-void main() {
+import 'services/reflection_service.dart';
+import 'widgets/reflection_entry_sheet.dart';
+import 'screens/reflection_log_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ReflectionService.init();
   runApp(const MyApp());
 }
 
@@ -82,6 +88,7 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
   Widget build(BuildContext context) {
     final progress = _getYearProgress();
     final percent = (progress * 100).toStringAsFixed(0);
+    final todayReflection = ReflectionService.getToday();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -154,6 +161,69 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 12),
+          // Reflection prompt + log button
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () async {
+                    await showModalBottomSheet<bool>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                        ),
+                        child: ReflectionEntrySheet(onSaved: () => setState(() {})),
+                      ),
+                    );
+                    setState(() {});
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: todayReflection == null ? const Color(0xFF111111) : const Color(0x2033CC66),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          todayReflection == null ? Icons.edit : Icons.check_circle,
+                          color: todayReflection == null ? const Color(0xFF888888) : const Color(0xFF00CC44),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            todayReflection == null ? 'One thing you did today' : todayReflection.text,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 13,
+                              color: Color(0xFFCCCCCC),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () async {
+                  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReflectionLogScreen()));
+                  setState(() {});
+                },
+                icon: const Icon(Icons.history, color: Color(0xFF888888)),
+                tooltip: 'View reflections',
+              ),
+            ],
           ),
         ],
       ),
