@@ -4,7 +4,7 @@ import '../services/reflection_service.dart';
 
 class ReflectionEntrySheet extends StatefulWidget {
   final VoidCallback? onSaved;
-  const ReflectionEntrySheet({Key? key, this.onSaved}) : super(key: key);
+  const ReflectionEntrySheet({super.key, this.onSaved});
 
   @override
   State<ReflectionEntrySheet> createState() => _ReflectionEntrySheetState();
@@ -31,6 +31,7 @@ class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
       return;
     }
     await ReflectionService.saveToday(text);
+    if (!mounted) return;
     widget.onSaved?.call();
     Navigator.of(context).pop(true);
   }
@@ -59,7 +60,10 @@ class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF888888))),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Color(0xFF888888)),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'services/reflection_service.dart';
 import 'widgets/reflection_entry_sheet.dart';
 import 'screens/reflection_log_screen.dart';
+import 'utils/year_progress.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,24 +59,20 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
     super.dispose();
   }
 
-  double _getYearProgress() {
-    final startOfYear = DateTime(_now.year, 1, 1);
-    final endOfYear = DateTime(_now.year + 1, 1, 1);
-    final total = endOfYear.difference(startOfYear).inSeconds;
-    final elapsed = _now.difference(startOfYear).inSeconds;
-    return elapsed / total;
-  }
-
-  int _getDaysLeft() {
-    final today = DateTime(_now.year, _now.month, _now.day);
-    final lastDay = DateTime(_now.year, 12, 31);
-    return lastDay.difference(today).inDays + 1; // inclusive: today counts
-  }
-
   String _formatDate() {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     final month = months[_now.month - 1];
     final day = _now.day;
@@ -86,7 +83,7 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = _getYearProgress();
+    final progress = yearProgress(_now);
     final percent = (progress * 100).toStringAsFixed(0);
     final todayReflection = ReflectionService.getToday();
 
@@ -114,7 +111,7 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
           const SizedBox(height: 4),
           // Days left (supporting info)
           Text(
-            '${_getDaysLeft()} days left in ${_now.year}',
+            '${daysLeftInYear(_now)} days left in ${_now.year}',
             style: const TextStyle(
               fontFamily: 'monospace',
               fontSize: 13,
@@ -143,7 +140,9 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                   LinearProgressIndicator(
                     value: progress,
                     backgroundColor: const Color(0xFF2A2A2A),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00CC44)),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFF00CC44),
+                    ),
                     minHeight: 20,
                   ),
                   // tick marks overlay
@@ -176,30 +175,45 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                       builder: (_) => Container(
                         decoration: const BoxDecoration(
                           color: Colors.black,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(12),
+                          ),
                         ),
-                        child: ReflectionEntrySheet(onSaved: () => setState(() {})),
+                        child: ReflectionEntrySheet(
+                          onSaved: () => setState(() {}),
+                        ),
                       ),
                     );
                     setState(() {});
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 12,
+                    ),
                     decoration: BoxDecoration(
-                      color: todayReflection == null ? const Color(0xFF111111) : const Color(0x2033CC66),
+                      color: todayReflection == null
+                          ? const Color(0xFF111111)
+                          : const Color(0x2033CC66),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          todayReflection == null ? Icons.edit : Icons.check_circle,
-                          color: todayReflection == null ? const Color(0xFF888888) : const Color(0xFF00CC44),
+                          todayReflection == null
+                              ? Icons.edit
+                              : Icons.check_circle,
+                          color: todayReflection == null
+                              ? const Color(0xFF888888)
+                              : const Color(0xFF00CC44),
                           size: 18,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            todayReflection == null ? 'One thing you did today' : todayReflection.text,
+                            todayReflection == null
+                                ? 'One thing you did today'
+                                : todayReflection.text,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -217,7 +231,11 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
               const SizedBox(width: 8),
               IconButton(
                 onPressed: () async {
-                  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReflectionLogScreen()));
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ReflectionLogScreen(),
+                    ),
+                  );
                   setState(() {});
                 },
                 icon: const Icon(Icons.history, color: Color(0xFF888888)),
@@ -236,7 +254,11 @@ class _TickPainter extends CustomPainter {
   final Color color;
   final double inset;
 
-  _TickPainter({required this.positions, required this.color, this.inset = 3.0});
+  _TickPainter({
+    required this.positions,
+    required this.color,
+    this.inset = 3.0,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -256,6 +278,8 @@ class _TickPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TickPainter oldDelegate) {
-    return oldDelegate.positions != positions || oldDelegate.color != color || oldDelegate.inset != inset;
+    return oldDelegate.positions != positions ||
+        oldDelegate.color != color ||
+        oldDelegate.inset != inset;
   }
 }
