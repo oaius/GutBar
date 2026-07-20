@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import 'models/reflection.dart';
 import 'services/reflection_service.dart';
 import 'services/life_profile_service.dart';
+import 'services/onboarding_service.dart';
+import 'services/year_progress_home_widget_service.dart';
 import 'widgets/reflection_entry_sheet.dart';
 import 'widgets/progress_bar_widget.dart';
 import 'screens/life_progress_screen.dart';
@@ -13,24 +16,56 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ReflectionService.init();
   await LifeProfileService.init();
+  await OnboardingService.init();
+  await YearProgressHomeWidgetService.initialize();
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+final appNavigatorKey = GlobalKey<NavigatorState>();
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  StreamSubscription<dynamic>? _widgetLaunchSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _widgetLaunchSubscription =
+        YearProgressHomeWidgetService.listenForWidgetLaunches(() {
+          appNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+        });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(YearProgressHomeWidgetService.updateWidgetData());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _widgetLaunchSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Legder',
+      navigatorKey: appNavigatorKey,
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         backgroundColor: Colors.black,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: YearProgressWidget(),
-          ),
-        ),
+        body: const YearProgressWidget(),
       ),
     );
   }
@@ -44,13 +79,22 @@ class YearProgressWidget extends StatefulWidget {
 }
 
 class _YearProgressWidgetState extends State<YearProgressWidget> {
+  static const _introTextStyle = TextStyle(
+    fontFamily: 'monospace',
+    fontSize: 13,
+    color: Color(0xFF888888),
+  );
+
   late Timer _timer;
   late DateTime _now;
+  late bool _showYearIntro;
+  bool _dismissingYearIntro = false;
 
   @override
   void initState() {
     super.initState();
     _now = DateTime.now();
+    _showYearIntro = !OnboardingService.hasSeenYearIntro;
     // Refresh every minute
     _timer = Timer.periodic(const Duration(minutes: 1), (_) {
       setState(() => _now = DateTime.now());
@@ -85,12 +129,60 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
     return '$month $day, $hour:$minute';
   }
 
+  Future<void> _dismissYearIntro() async {
+    if (!_showYearIntro || _dismissingYearIntro) return;
+
+    setState(() => _showYearIntro = false);
+    _dismissingYearIntro = true;
+    await OnboardingService.markYearIntroSeen();
+    _dismissingYearIntro = false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final progress = yearProgress(_now);
     final percent = (progress * 100).toStringAsFixed(0);
     final todayReflection = ReflectionService.getToday();
 
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) {
+        _dismissYearIntro();
+      },
+      child: Stack(
+        children: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: _buildProgressPanel(
+                progress: progress,
+                percent: percent,
+                todayReflection: todayReflection,
+              ),
+            ),
+          ),
+          if (_showYearIntro)
+            const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Text(
+                  'No streaks. Just the number.',
+                  style: _introTextStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressPanel({
+    required double progress,
+    required String percent,
+    required Reflection? todayReflection,
+  }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -109,7 +201,6 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
             tickPositions: const [0.25, 0.5, 0.75],
           ),
           const SizedBox(height: 12),
-          // Reflection prompt + log button
           Row(
             children: [
               Expanded(
@@ -119,15 +210,22 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (_) => Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(12),
-                          ),
+                      builder: (context) => AnimatedPadding(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOutCubic,
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.viewInsetsOf(context).bottom,
                         ),
-                        child: ReflectionEntrySheet(
-                          onSaved: () => setState(() {}),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
+                          ),
+                          child: ReflectionEntrySheet(
+                            onSaved: () => setState(() {}),
+                          ),
                         ),
                       ),
                     );

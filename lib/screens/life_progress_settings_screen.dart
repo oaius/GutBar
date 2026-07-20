@@ -6,8 +6,13 @@ import '../services/life_profile_service.dart';
 
 class LifeProgressSettingsScreen extends StatefulWidget {
   final LifeProfile? initialProfile;
+  final bool showFirstRunContext;
 
-  const LifeProgressSettingsScreen({super.key, this.initialProfile});
+  const LifeProgressSettingsScreen({
+    super.key,
+    this.initialProfile,
+    this.showFirstRunContext = false,
+  });
 
   @override
   State<LifeProgressSettingsScreen> createState() =>
@@ -112,6 +117,17 @@ class _LifeProgressSettingsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (widget.showFirstRunContext) ...[
+                const Text(
+                  'This is an estimate, not a prediction.',
+                  style: TextStyle(
+                    color: Color(0xFF888888),
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
               const Text(
                 'Birthdate',
                 style: TextStyle(

@@ -4,24 +4,56 @@ import '../services/reflection_service.dart';
 
 class ReflectionEntrySheet extends StatefulWidget {
   final VoidCallback? onSaved;
-  const ReflectionEntrySheet({super.key, this.onSaved});
+  final DateTime? now;
+
+  const ReflectionEntrySheet({super.key, this.onSaved, this.now});
 
   @override
   State<ReflectionEntrySheet> createState() => _ReflectionEntrySheetState();
 }
 
 class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
+  static const _inputTextStyle = TextStyle(
+    color: Colors.white,
+    fontFamily: 'monospace',
+  );
+  static const _hintTextStyle = TextStyle(
+    color: Color(0xFF888888),
+    fontFamily: 'monospace',
+  );
+  static const _yearAgoTextStyle = TextStyle(
+    color: Color(0xFF888888),
+    fontFamily: 'monospace',
+    fontSize: 13,
+  );
+  static const _cursorColor = Color(0xFF00CC44);
+  static const _underlineColor = Color(0xFF888888);
+
   final _controller = TextEditingController();
-  bool _initialized = false;
+  late DateTime _today;
+  String? _yearAgoText;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_initialized) {
-      final today = ReflectionService.getToday();
-      if (today != null) _controller.text = today.text;
-      _initialized = true;
-    }
+  void initState() {
+    super.initState();
+    _today = _dateOnly(widget.now ?? DateTime.now());
+    _loadReflectionContext();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _loadReflectionContext() {
+    final today = ReflectionService.getForDate(_today);
+    if (today != null) _controller.text = today.text;
+
+    final lastYearDate = _sameCalendarDateLastYear(_today);
+    if (lastYearDate == null) return;
+
+    _yearAgoText = ReflectionService.getForDate(lastYearDate)?.text;
   }
 
   void _save() async {
@@ -30,10 +62,23 @@ class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
       Navigator.of(context).pop(false);
       return;
     }
-    await ReflectionService.saveToday(text);
+    await ReflectionService.saveForDate(_today, text);
     if (!mounted) return;
     widget.onSaved?.call();
     Navigator.of(context).pop(true);
+  }
+
+  static DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
+  static DateTime? _sameCalendarDateLastYear(DateTime date) {
+    final candidate = DateTime(date.year - 1, date.month, date.day);
+    if (candidate.year != date.year - 1 ||
+        candidate.month != date.month ||
+        candidate.day != date.day) {
+      return null;
+    }
+    return candidate;
   }
 
   @override
@@ -43,16 +88,33 @@ class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_yearAgoText != null) ...[
+              Text(
+                'A year ago: $_yearAgoText',
+                style: _yearAgoTextStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 10),
+            ],
             TextField(
               controller: _controller,
               autofocus: true,
+              cursorColor: _cursorColor,
+              style: _inputTextStyle,
               decoration: const InputDecoration(
                 hintText: 'One thing you did today',
-                border: UnderlineInputBorder(),
+                hintStyle: _hintTextStyle,
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: _underlineColor),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: _cursorColor),
+                ),
               ),
               onSubmitted: (_) => _save(),
-              style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 12),
             Row(

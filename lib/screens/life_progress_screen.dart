@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/life_profile.dart';
 import '../services/life_profile_service.dart';
+import '../services/onboarding_service.dart';
 import '../utils/life_progress.dart';
 import '../widgets/progress_bar_widget.dart';
 import 'life_progress_settings_screen.dart';
@@ -20,7 +21,7 @@ class _LifeProgressScreenState extends State<LifeProgressScreen> {
 
   late Timer _timer;
   late DateTime _now;
-  bool _askedForSetup = false;
+  bool _openedFirstRunPrompt = false;
 
   @override
   void initState() {
@@ -40,20 +41,27 @@ class _LifeProgressScreenState extends State<LifeProgressScreen> {
     super.dispose();
   }
 
-  void _openSettingsIfNeeded() {
-    if (!mounted || _askedForSetup || LifeProfileService.profile != null) {
+  Future<void> _openSettingsIfNeeded() async {
+    if (!mounted ||
+        _openedFirstRunPrompt ||
+        OnboardingService.hasSeenLifeInputsPrompt ||
+        LifeProfileService.profile != null) {
       return;
     }
 
-    _askedForSetup = true;
-    _openSettings();
+    _openedFirstRunPrompt = true;
+    await OnboardingService.markLifeInputsPromptSeen();
+    if (!mounted) return;
+
+    await _openSettings(showFirstRunContext: true);
   }
 
-  Future<void> _openSettings() async {
+  Future<void> _openSettings({bool showFirstRunContext = false}) async {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => LifeProgressSettingsScreen(
           initialProfile: LifeProfileService.profile,
+          showFirstRunContext: showFirstRunContext,
         ),
       ),
     );

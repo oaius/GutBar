@@ -13,7 +13,9 @@ import '../widgets/reflection_year_grid.dart';
 enum _ReflectionMenuAction { exportEntries, importEntries }
 
 class ReflectionLogScreen extends StatefulWidget {
-  const ReflectionLogScreen({super.key});
+  final DateTime? now;
+
+  const ReflectionLogScreen({super.key, this.now});
 
   @override
   State<ReflectionLogScreen> createState() => _ReflectionLogScreenState();
@@ -21,6 +23,12 @@ class ReflectionLogScreen extends StatefulWidget {
 
 class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
   List<Reflection> _items = [];
+
+  static const _summaryTextStyle = TextStyle(
+    color: Color(0xFF888888),
+    fontFamily: 'monospace',
+    fontSize: 13,
+  );
 
   static TextStyle _menuTextStyle(bool enabled) => TextStyle(
     color: enabled ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
@@ -195,6 +203,11 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
   @override
   Widget build(BuildContext context) {
     final df = DateFormat.yMMMd();
+    final summary = _RetrospectiveSummary.from(
+      reflections: _items,
+      now: widget.now ?? DateTime.now(),
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -251,6 +264,8 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
             const SizedBox(height: 8),
             ReflectionYearGrid(reflections: _items),
             const SizedBox(height: 16),
+            _RetrospectiveSummaryView(summary: summary),
+            const SizedBox(height: 16),
             if (_items.isEmpty) ...[
               const SizedBox(height: 8),
               Text(
@@ -297,4 +312,74 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
       ),
     );
   }
+}
+
+class _RetrospectiveSummaryView extends StatelessWidget {
+  final _RetrospectiveSummary summary;
+
+  const _RetrospectiveSummaryView({required this.summary});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'This week: ${summary.weekCount}/${summary.weekElapsedDays} days accounted for',
+          style: _ReflectionLogScreenState._summaryTextStyle,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'This month: ${summary.monthCount}/${summary.monthElapsedDays} days accounted for',
+          style: _ReflectionLogScreenState._summaryTextStyle,
+        ),
+      ],
+    );
+  }
+}
+
+class _RetrospectiveSummary {
+  final int weekCount;
+  final int weekElapsedDays;
+  final int monthCount;
+  final int monthElapsedDays;
+
+  const _RetrospectiveSummary({
+    required this.weekCount,
+    required this.weekElapsedDays,
+    required this.monthCount,
+    required this.monthElapsedDays,
+  });
+
+  factory _RetrospectiveSummary.from({
+    required List<Reflection> reflections,
+    required DateTime now,
+  }) {
+    final today = _dateOnly(now);
+    final startOfWeek = today.subtract(Duration(days: today.weekday % 7));
+    final startOfMonth = DateTime(today.year, today.month);
+    final entryDates = {
+      for (final reflection in reflections) _dateOnly(reflection.date),
+    };
+
+    return _RetrospectiveSummary(
+      weekCount: _countDatesBetween(entryDates, startOfWeek, today),
+      weekElapsedDays: today.difference(startOfWeek).inDays + 1,
+      monthCount: _countDatesBetween(entryDates, startOfMonth, today),
+      monthElapsedDays: today.day,
+    );
+  }
+
+  static int _countDatesBetween(
+    Set<DateTime> dates,
+    DateTime start,
+    DateTime end,
+  ) {
+    return dates.where((date) {
+      return !date.isBefore(start) && !date.isAfter(end);
+    }).length;
+  }
+
+  static DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 }
