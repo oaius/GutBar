@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:progressbar/models/reflection.dart';
 import 'package:progressbar/services/reflection_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -69,6 +72,107 @@ void main() {
 
       expect(ReflectionService.getForDate(savedDate)?.text, 'Still here');
     });
+
+    test(
+      'exportBackupJson serializes entries as date and text objects',
+      () async {
+        await ReflectionService.saveForDate(DateTime(2025, 5, 1), 'Older');
+        await ReflectionService.saveForDate(DateTime(2025, 5, 2), 'Newer');
+
+        final decoded =
+            jsonDecode(ReflectionService.exportBackupJson()) as List;
+
+        expect(decoded, hasLength(2));
+        expect(decoded.first, containsPair('date', '2025-05-02T00:00:00.000'));
+        expect(decoded.first, containsPair('text', 'Newer'));
+      },
+    );
+
+    test('parseBackupJson rejects non-entry data', () {
+      expect(
+        () => ReflectionService.parseBackupJson(
+          jsonEncode([
+            {'date': '2025-05-01', 'text': 42},
+          ]),
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('parseBackupJson rejects duplicate imported dates', () {
+      expect(
+        () => ReflectionService.parseBackupJson(
+          jsonEncode([
+            {'date': '2025-05-01', 'text': 'First'},
+            {'date': '2025-05-01T12:00:00.000', 'text': 'Duplicate'},
+          ]),
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('importEntries adds non-conflicting entries', () async {
+      final result = await ReflectionService.importEntries([
+        Reflection(date: DateTime(2025, 5, 1), text: 'Imported'),
+      ], resolveConflict: (_) async => ReflectionImportChoice.keepExisting);
+
+      expect(result.added, 1);
+      expect(
+        ReflectionService.getForDate(DateTime(2025, 5, 1))?.text,
+        'Imported',
+      );
+    });
+
+    test('importEntries can keep an existing conflicting entry', () async {
+      await ReflectionService.saveForDate(DateTime(2025, 5, 1), 'Existing');
+
+      final result = await ReflectionService.importEntries([
+        Reflection(date: DateTime(2025, 5, 1), text: 'Imported'),
+      ], resolveConflict: (_) async => ReflectionImportChoice.keepExisting);
+
+      expect(result.changed, 0);
+      expect(result.keptExisting, 1);
+      expect(
+        ReflectionService.getForDate(DateTime(2025, 5, 1))?.text,
+        'Existing',
+      );
+    });
+
+    test('importEntries can overwrite an existing conflicting entry', () async {
+      await ReflectionService.saveForDate(DateTime(2025, 5, 1), 'Existing');
+
+      final result = await ReflectionService.importEntries([
+        Reflection(date: DateTime(2025, 5, 1), text: 'Imported'),
+      ], resolveConflict: (_) async => ReflectionImportChoice.overwrite);
+
+      expect(result.overwritten, 1);
+      expect(
+        ReflectionService.getForDate(DateTime(2025, 5, 1))?.text,
+        'Imported',
+      );
+    });
+
+    test(
+      'importEntries can keep both by moving imported entry forward',
+      () async {
+        await ReflectionService.saveForDate(DateTime(2025, 5, 1), 'Existing');
+        await ReflectionService.saveForDate(DateTime(2025, 5, 2), 'Occupied');
+
+        final result = await ReflectionService.importEntries([
+          Reflection(date: DateTime(2025, 5, 1), text: 'Imported'),
+        ], resolveConflict: (_) async => ReflectionImportChoice.keepBoth);
+
+        expect(result.keptBoth, 1);
+        expect(
+          ReflectionService.getForDate(DateTime(2025, 5, 1))?.text,
+          'Existing',
+        );
+        expect(
+          ReflectionService.getForDate(DateTime(2025, 5, 3))?.text,
+          'Imported',
+        );
+      },
+    );
   });
 }
 
