@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../models/life_profile.dart';
 import '../services/life_profile_service.dart';
 import '../services/onboarding_service.dart';
+import '../services/theme_preference_service.dart';
+import '../theme/app_theme.dart';
 import '../utils/life_progress.dart';
 import '../widgets/progress_bar_widget.dart';
 import 'life_progress_settings_screen.dart';
@@ -74,21 +76,29 @@ class _LifeProgressScreenState extends State<LifeProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
     final profile = LifeProfileService.profile;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        title: const Text(
-          'Life Progress',
-          style: TextStyle(fontFamily: 'monospace'),
-        ),
+        title: const Text('Life Progress'),
         actions: [
           IconButton(
+            onPressed: ThemePreferenceService.toggleTheme,
+            icon: Icon(
+              ThemePreferenceService.isDarkMode
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+              color: colors.icon,
+            ),
+            tooltip: ThemePreferenceService.isDarkMode
+                ? 'Light mode'
+                : 'Dark mode',
+          ),
+          IconButton(
             onPressed: _openSettings,
-            icon: const Icon(Icons.settings, color: Color(0xFF888888)),
+            icon: Icon(Icons.settings, color: colors.icon),
             tooltip: 'Edit inputs',
           ),
         ],
@@ -99,7 +109,7 @@ class _LifeProgressScreenState extends State<LifeProgressScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: colors.background,
               borderRadius: BorderRadius.circular(12),
             ),
             child: profile == null
@@ -147,26 +157,24 @@ class _MissingLifeInputs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'No life inputs saved',
           style: TextStyle(
             fontFamily: 'monospace',
             fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 0.5,
+            color: colors.textPrimary,
+            letterSpacing: 0,
           ),
         ),
         const SizedBox(height: 12),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF00CC44),
-            foregroundColor: Colors.black,
-          ),
           onPressed: onOpenSettings,
           child: const Text('Set inputs'),
         ),

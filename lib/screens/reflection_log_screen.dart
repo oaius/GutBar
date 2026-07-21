@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../services/reflection_service.dart';
 import '../models/reflection.dart';
+import '../theme/app_theme.dart';
 import '../widgets/reflection_year_grid.dart';
 
 enum _ReflectionMenuAction { exportEntries, importEntries }
@@ -23,17 +24,6 @@ class ReflectionLogScreen extends StatefulWidget {
 
 class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
   List<Reflection> _items = [];
-
-  static const _summaryTextStyle = TextStyle(
-    color: Color(0xFF888888),
-    fontFamily: 'monospace',
-    fontSize: 13,
-  );
-
-  static TextStyle _menuTextStyle(bool enabled) => TextStyle(
-    color: enabled ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-    fontFamily: 'monospace',
-  );
 
   @override
   void initState() {
@@ -129,17 +119,24 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
+        final colors = context.progressColors;
+
         return AlertDialog(
-          backgroundColor: Colors.black,
-          title: const Text(
+          backgroundColor: colors.surface,
+          title: Text(
             'Entry already exists',
-            style: TextStyle(color: Colors.white, fontFamily: 'monospace'),
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontFamily: 'monospace',
+              letterSpacing: 0,
+            ),
           ),
           content: Text(
             '$dateLabel already has an entry. Keep both saves the imported copy on the next open date.',
-            style: const TextStyle(
-              color: Color(0xFFCCCCCC),
+            style: TextStyle(
+              color: colors.textSecondary,
               fontFamily: 'monospace',
+              letterSpacing: 0,
             ),
           ),
           actions: [
@@ -147,26 +144,23 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
               onPressed: () => Navigator.of(
                 context,
               ).pop(ReflectionImportChoice.keepExisting),
-              child: const Text(
+              child: Text(
                 'Keep existing',
-                style: TextStyle(color: Color(0xFF888888)),
+                style: TextStyle(color: colors.textTertiary),
               ),
             ),
             TextButton(
               onPressed: () =>
                   Navigator.of(context).pop(ReflectionImportChoice.overwrite),
-              child: const Text(
+              child: Text(
                 'Overwrite',
-                style: TextStyle(color: Color(0xFFCCCCCC)),
+                style: TextStyle(color: colors.textSecondary),
               ),
             ),
             TextButton(
               onPressed: () =>
                   Navigator.of(context).pop(ReflectionImportChoice.keepBoth),
-              child: const Text(
-                'Keep both',
-                style: TextStyle(color: Color(0xFF00CC44)),
-              ),
+              child: Text('Keep both', style: TextStyle(color: colors.accent)),
             ),
           ],
         );
@@ -185,15 +179,17 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
+    final colors = context.progressColors;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF111111),
+        backgroundColor: colors.surfaceAlt,
         content: Text(
           message,
-          style: const TextStyle(
-            color: Color(0xFFCCCCCC),
+          style: TextStyle(
+            color: colors.textSecondary,
             fontFamily: 'monospace',
+            letterSpacing: 0,
           ),
         ),
       ),
@@ -202,6 +198,7 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
     final df = DateFormat.yMMMd();
     final summary = _RetrospectiveSummary.from(
       reflections: _items,
@@ -209,18 +206,13 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
     );
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        title: const Text(
-          'Reflections',
-          style: TextStyle(fontFamily: 'monospace'),
-        ),
+        title: const Text('Reflections'),
         actions: [
           PopupMenuButton<_ReflectionMenuAction>(
-            color: const Color(0xFF111111),
-            icon: const Icon(Icons.more_vert, color: Color(0xFF888888)),
+            color: colors.surfaceAlt,
+            icon: Icon(Icons.more_vert, color: colors.icon),
             tooltip: 'Reflection options',
             onSelected: (action) {
               switch (action) {
@@ -238,12 +230,15 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
                 enabled: _items.isNotEmpty,
                 child: Text(
                   'Export entries',
-                  style: _menuTextStyle(_items.isNotEmpty),
+                  style: _menuTextStyle(context, _items.isNotEmpty),
                 ),
               ),
               PopupMenuItem(
                 value: _ReflectionMenuAction.importEntries,
-                child: Text('Import entries', style: _menuTextStyle(true)),
+                child: Text(
+                  'Import entries',
+                  style: _menuTextStyle(context, true),
+                ),
               ),
             ],
           ),
@@ -254,11 +249,12 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Year overview',
               style: TextStyle(
-                color: Color(0xFF888888),
+                color: colors.textTertiary,
                 fontFamily: 'monospace',
+                letterSpacing: 0,
               ),
             ),
             const SizedBox(height: 8),
@@ -269,16 +265,21 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
             if (_items.isEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                'No entries yet — tap a day to start',
-                style: const TextStyle(
-                  color: Color(0xFF888888),
+                'No entries yet - tap a day to start',
+                style: TextStyle(
+                  color: colors.textTertiary,
                   fontFamily: 'monospace',
+                  letterSpacing: 0,
                 ),
               ),
             ] else ...[
-              const Text(
+              Text(
                 'Entries',
-                style: TextStyle(color: Colors.white, fontFamily: 'monospace'),
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontFamily: 'monospace',
+                  letterSpacing: 0,
+                ),
               ),
               const SizedBox(height: 8),
               Expanded(
@@ -290,16 +291,18 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
                       contentPadding: EdgeInsets.zero,
                       title: Text(
                         df.format(r.date),
-                        style: const TextStyle(
-                          color: Color(0xFF888888),
+                        style: TextStyle(
+                          color: colors.textTertiary,
                           fontFamily: 'monospace',
+                          letterSpacing: 0,
                         ),
                       ),
                       subtitle: Text(
                         r.text,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: colors.textPrimary,
                           fontFamily: 'monospace',
+                          letterSpacing: 0,
                         ),
                       ),
                     );
@@ -312,6 +315,16 @@ class _ReflectionLogScreenState extends State<ReflectionLogScreen> {
       ),
     );
   }
+
+  TextStyle _menuTextStyle(BuildContext context, bool enabled) {
+    final colors = context.progressColors;
+
+    return TextStyle(
+      color: enabled ? colors.textSecondary : colors.disabled,
+      fontFamily: 'monospace',
+      letterSpacing: 0,
+    );
+  }
 }
 
 class _RetrospectiveSummaryView extends StatelessWidget {
@@ -321,17 +334,25 @@ class _RetrospectiveSummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
+    final summaryTextStyle = TextStyle(
+      color: colors.textTertiary,
+      fontFamily: 'monospace',
+      fontSize: 13,
+      letterSpacing: 0,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'This week: ${summary.weekCount}/${summary.weekElapsedDays} days accounted for',
-          style: _ReflectionLogScreenState._summaryTextStyle,
+          style: summaryTextStyle,
         ),
         const SizedBox(height: 4),
         Text(
           'This month: ${summary.monthCount}/${summary.monthElapsedDays} days accounted for',
-          style: _ReflectionLogScreenState._summaryTextStyle,
+          style: summaryTextStyle,
         ),
       ],
     );

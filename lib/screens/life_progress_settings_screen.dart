@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 
 import '../models/life_profile.dart';
 import '../services/life_profile_service.dart';
+import '../services/theme_preference_service.dart';
+import '../theme/app_theme.dart';
 
 class LifeProgressSettingsScreen extends StatefulWidget {
   final LifeProfile? initialProfile;
@@ -42,6 +44,7 @@ class _LifeProgressSettingsScreenState
   }
 
   Future<void> _pickBirthdate() async {
+    final colors = context.progressColors;
     final now = DateTime.now();
     final firstDate = DateTime(1800);
     final lastDate = DateTime(now.year + 100, 12, 31);
@@ -60,11 +63,11 @@ class _LifeProgressSettingsScreenState
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF00CC44),
-              onPrimary: Colors.black,
-              surface: Colors.black,
-              onSurface: Colors.white,
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: colors.accent,
+              onPrimary: colors.onAccent,
+              surface: colors.surface,
+              onSurface: colors.textPrimary,
             ),
           ),
           child: child!,
@@ -101,16 +104,15 @@ class _LifeProgressSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: colors.border),
+    );
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        title: const Text(
-          'Life Inputs',
-          style: TextStyle(fontFamily: 'monospace'),
-        ),
-      ),
+      backgroundColor: colors.background,
+      appBar: AppBar(title: const Text('Life Inputs')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -118,21 +120,25 @@ class _LifeProgressSettingsScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (widget.showFirstRunContext) ...[
-                const Text(
+                Text(
                   'This is an estimate, not a prediction.',
                   style: TextStyle(
-                    color: Color(0xFF888888),
+                    color: colors.textTertiary,
                     fontFamily: 'monospace',
                     fontSize: 13,
+                    letterSpacing: 0,
                   ),
                 ),
                 const SizedBox(height: 18),
               ],
-              const Text(
+              const _ThemeModeSwitch(),
+              const SizedBox(height: 18),
+              Text(
                 'Birthdate',
                 style: TextStyle(
-                  color: Color(0xFF888888),
+                  color: colors.textTertiary,
                   fontFamily: 'monospace',
+                  letterSpacing: 0,
                 ),
               ),
               const SizedBox(height: 8),
@@ -146,9 +152,9 @@ class _LifeProgressSettingsScreenState
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF111111),
+                    color: colors.surfaceAlt,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF2A2A2A)),
+                    border: Border.all(color: colors.border),
                   ),
                   child: Text(
                     _birthdate == null
@@ -156,19 +162,21 @@ class _LifeProgressSettingsScreenState
                         : _dateFormat.format(_birthdate!),
                     style: TextStyle(
                       color: _birthdate == null
-                          ? const Color(0xFF888888)
-                          : Colors.white,
+                          ? colors.textTertiary
+                          : colors.textPrimary,
                       fontFamily: 'monospace',
+                      letterSpacing: 0,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Life expectancy in years',
                 style: TextStyle(
-                  color: Color(0xFF888888),
+                  color: colors.textTertiary,
                   fontFamily: 'monospace',
+                  letterSpacing: 0,
                 ),
               ),
               const SizedBox(height: 8),
@@ -178,24 +186,19 @@ class _LifeProgressSettingsScreenState
                   decimal: true,
                   signed: true,
                 ),
-                style: const TextStyle(
-                  color: Colors.white,
+                cursorColor: colors.accent,
+                style: TextStyle(
+                  color: colors.textPrimary,
                   fontFamily: 'monospace',
+                  letterSpacing: 0,
                 ),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: const Color(0xFF111111),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF888888)),
+                  fillColor: colors.surfaceAlt,
+                  border: fieldBorder,
+                  enabledBorder: fieldBorder,
+                  focusedBorder: fieldBorder.copyWith(
+                    borderSide: BorderSide(color: colors.textTertiary),
                   ),
                 ),
               ),
@@ -205,19 +208,10 @@ class _LifeProgressSettingsScreenState
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: Color(0xFF888888)),
-                    ),
+                    child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00CC44),
-                      foregroundColor: Colors.black,
-                      disabledBackgroundColor: const Color(0xFF2A2A2A),
-                      disabledForegroundColor: const Color(0xFF888888),
-                    ),
                     onPressed: _birthdate == null ? null : _save,
                     child: const Text('Save'),
                   ),
@@ -227,6 +221,34 @@ class _LifeProgressSettingsScreenState
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ThemeModeSwitch extends StatelessWidget {
+  const _ThemeModeSwitch();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.progressColors;
+
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemePreferenceService.themeModeNotifier,
+      builder: (context, themeMode, _) {
+        return SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            'Dark mode',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontFamily: 'monospace',
+              letterSpacing: 0,
+            ),
+          ),
+          value: themeMode == ThemeMode.dark,
+          onChanged: ThemePreferenceService.setDarkMode,
+        );
+      },
     );
   }
 }

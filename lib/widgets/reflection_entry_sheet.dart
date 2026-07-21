@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/reflection_service.dart';
+import '../theme/app_theme.dart';
 
 class ReflectionEntrySheet extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -13,22 +14,6 @@ class ReflectionEntrySheet extends StatefulWidget {
 }
 
 class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
-  static const _inputTextStyle = TextStyle(
-    color: Colors.white,
-    fontFamily: 'monospace',
-  );
-  static const _hintTextStyle = TextStyle(
-    color: Color(0xFF888888),
-    fontFamily: 'monospace',
-  );
-  static const _yearAgoTextStyle = TextStyle(
-    color: Color(0xFF888888),
-    fontFamily: 'monospace',
-    fontSize: 13,
-  );
-  static const _cursorColor = Color(0xFF00CC44);
-  static const _underlineColor = Color(0xFF888888);
-
   final _controller = TextEditingController();
   late DateTime _today;
   String? _yearAgoText;
@@ -83,6 +68,8 @@ class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -93,7 +80,12 @@ class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
             if (_yearAgoText != null) ...[
               Text(
                 'A year ago: $_yearAgoText',
-                style: _yearAgoTextStyle,
+                style: TextStyle(
+                  color: colors.textTertiary,
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  letterSpacing: 0,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -102,16 +94,24 @@ class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
             TextField(
               controller: _controller,
               autofocus: true,
-              cursorColor: _cursorColor,
-              style: _inputTextStyle,
-              decoration: const InputDecoration(
+              cursorColor: colors.accent,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontFamily: 'monospace',
+                letterSpacing: 0,
+              ),
+              decoration: InputDecoration(
                 hintText: 'One thing you did today',
-                hintStyle: _hintTextStyle,
+                hintStyle: TextStyle(
+                  color: colors.textTertiary,
+                  fontFamily: 'monospace',
+                  letterSpacing: 0,
+                ),
                 enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: _underlineColor),
+                  borderSide: BorderSide(color: colors.textTertiary),
                 ),
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: _cursorColor),
+                  borderSide: BorderSide(color: colors.accent),
                 ),
               ),
               onSubmitted: (_) => _save(),
@@ -122,20 +122,10 @@ class _ReflectionEntrySheetState extends State<ReflectionEntrySheet> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Color(0xFF888888)),
-                  ),
+                  child: const Text('Cancel'),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00CC44),
-                    foregroundColor: Colors.black,
-                  ),
-                  onPressed: _save,
-                  child: const Text('Save'),
-                ),
+                ElevatedButton(onPressed: _save, child: const Text('Save')),
               ],
             ),
           ],

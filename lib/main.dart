@@ -5,7 +5,9 @@ import 'models/reflection.dart';
 import 'services/reflection_service.dart';
 import 'services/life_profile_service.dart';
 import 'services/onboarding_service.dart';
+import 'services/theme_preference_service.dart';
 import 'services/year_progress_home_widget_service.dart';
+import 'theme/app_theme.dart';
 import 'widgets/reflection_entry_sheet.dart';
 import 'widgets/progress_bar_widget.dart';
 import 'screens/life_progress_screen.dart';
@@ -17,6 +19,7 @@ Future<void> main() async {
   await ReflectionService.init();
   await LifeProfileService.init();
   await OnboardingService.init();
+  await ThemePreferenceService.init();
   await YearProgressHomeWidgetService.initialize();
   runApp(const MyApp());
 }
@@ -59,12 +62,34 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Legder',
-      navigatorKey: appNavigatorKey,
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: Colors.black,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemePreferenceService.themeModeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Legder',
+          navigatorKey: appNavigatorKey,
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: themeMode,
+          home: const _YearProgressHome(),
+        );
+      },
+    );
+  }
+}
+
+class _YearProgressHome extends StatelessWidget {
+  const _YearProgressHome();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.progressColors;
+
+    return AnnotatedRegion(
+      value: AppTheme.overlayStyleFor(Theme.of(context).brightness),
+      child: Scaffold(
+        backgroundColor: colors.background,
         body: const YearProgressWidget(),
       ),
     );
@@ -79,12 +104,6 @@ class YearProgressWidget extends StatefulWidget {
 }
 
 class _YearProgressWidgetState extends State<YearProgressWidget> {
-  static const _introTextStyle = TextStyle(
-    fontFamily: 'monospace',
-    fontSize: 13,
-    color: Color(0xFF888888),
-  );
-
   late Timer _timer;
   late DateTime _now;
   late bool _showYearIntro;
@@ -140,6 +159,7 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
     final progress = yearProgress(_now);
     final percent = (progress * 100).toStringAsFixed(0);
     final todayReflection = ReflectionService.getToday();
@@ -162,12 +182,17 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
             ),
           ),
           if (_showYearIntro)
-            const SafeArea(
+            SafeArea(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(24, 20, 24, 0),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                 child: Text(
                   'No streaks. Just the number.',
-                  style: _introTextStyle,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    color: colors.textTertiary,
+                    letterSpacing: 0,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -183,10 +208,12 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
     required String percent,
     required Reflection? todayReflection,
   }) {
+    final colors = context.progressColors;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: colors.background,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -210,24 +237,30 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) => AnimatedPadding(
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOutCubic,
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.viewInsetsOf(context).bottom,
-                        ),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(12),
+                      builder: (sheetContext) {
+                        final sheetColors = sheetContext.progressColors;
+
+                        return AnimatedPadding(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.viewInsetsOf(
+                              sheetContext,
+                            ).bottom,
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: sheetColors.surface,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(12),
+                              ),
+                            ),
+                            child: ReflectionEntrySheet(
+                              onSaved: () => setState(() {}),
                             ),
                           ),
-                          child: ReflectionEntrySheet(
-                            onSaved: () => setState(() {}),
-                          ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                     setState(() {});
                   },
@@ -238,8 +271,8 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                     ),
                     decoration: BoxDecoration(
                       color: todayReflection == null
-                          ? const Color(0xFF111111)
-                          : const Color(0x2033CC66),
+                          ? colors.surfaceAlt
+                          : colors.accentSoft,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -249,8 +282,8 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                               ? Icons.edit
                               : Icons.check_circle,
                           color: todayReflection == null
-                              ? const Color(0xFF888888)
-                              : const Color(0xFF00CC44),
+                              ? colors.textTertiary
+                              : colors.accent,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
@@ -261,10 +294,11 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                                 : todayReflection.text,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 13,
-                              color: Color(0xFFCCCCCC),
+                              color: colors.textSecondary,
+                              letterSpacing: 0,
                             ),
                           ),
                         ),
@@ -275,6 +309,18 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
               ),
               const SizedBox(width: 8),
               IconButton(
+                onPressed: ThemePreferenceService.toggleTheme,
+                icon: Icon(
+                  ThemePreferenceService.isDarkMode
+                      ? Icons.light_mode_outlined
+                      : Icons.dark_mode_outlined,
+                  color: colors.icon,
+                ),
+                tooltip: ThemePreferenceService.isDarkMode
+                    ? 'Light mode'
+                    : 'Dark mode',
+              ),
+              IconButton(
                 onPressed: () async {
                   await Navigator.of(context).push(
                     MaterialPageRoute(
@@ -283,10 +329,7 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                   );
                   setState(() {});
                 },
-                icon: const Icon(
-                  Icons.person_outline,
-                  color: Color(0xFF888888),
-                ),
+                icon: Icon(Icons.person_outline, color: colors.icon),
                 tooltip: 'Life progress',
               ),
               IconButton(
@@ -298,7 +341,7 @@ class _YearProgressWidgetState extends State<YearProgressWidget> {
                   );
                   setState(() {});
                 },
-                icon: const Icon(Icons.history, color: Color(0xFF888888)),
+                icon: Icon(Icons.history, color: colors.icon),
                 tooltip: 'View reflections',
               ),
             ],

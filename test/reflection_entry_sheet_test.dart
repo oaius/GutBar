@@ -4,6 +4,8 @@ import 'package:progressbar/main.dart';
 import 'package:progressbar/services/life_profile_service.dart';
 import 'package:progressbar/services/onboarding_service.dart';
 import 'package:progressbar/services/reflection_service.dart';
+import 'package:progressbar/services/theme_preference_service.dart';
+import 'package:progressbar/theme/app_theme.dart';
 import 'package:progressbar/widgets/reflection_entry_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,14 +17,16 @@ void main() {
     await ReflectionService.init();
     await LifeProfileService.init();
     await OnboardingService.init();
+    await ThemePreferenceService.init();
   });
 
   testWidgets('reflection entry field uses visible input colors', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
+      MaterialApp(
+        theme: AppTheme.dark(),
+        home: const Scaffold(
           backgroundColor: Colors.black,
           body: ReflectionEntrySheet(),
         ),
@@ -44,6 +48,26 @@ void main() {
     expect(editable.cursorColor, const Color(0xFF00CC44));
   });
 
+  testWidgets('reflection entry field adapts to light mode colors', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: const Scaffold(body: ReflectionEntrySheet()),
+      ),
+    );
+
+    final field = tester.widget<TextField>(find.byType(TextField));
+
+    expect(field.style?.color, ProgressThemeColors.light.textPrimary);
+    expect(field.cursorColor, ProgressThemeColors.light.accent);
+    expect(
+      field.decoration?.hintStyle?.color,
+      ProgressThemeColors.light.textTertiary,
+    );
+  });
+
   testWidgets('shows last years reflection as quiet context', (
     WidgetTester tester,
   ) async {
@@ -54,6 +78,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
           body: ReflectionEntrySheet(now: DateTime(2026, 7, 20)),
@@ -77,6 +102,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
           body: ReflectionEntrySheet(now: DateTime(2026, 7, 20)),
@@ -100,6 +126,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.dark(),
         home: Scaffold(
           backgroundColor: Colors.black,
           body: ReflectionEntrySheet(now: DateTime(2024, 2, 29)),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/reflection.dart';
+import '../theme/app_theme.dart';
 
 class ReflectionYearGrid extends StatefulWidget {
   final List<Reflection> reflections;
@@ -21,13 +22,6 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
   static const double _monthLabelTapWidth = 44;
   static const Duration _monthTapFeedbackDuration = Duration(milliseconds: 120);
   static const Duration _monthScrollDuration = Duration(milliseconds: 260);
-
-  static const Color _filledColor = Color(0xFF00CC44);
-  static const Color _emptyBorderColor = Color(0xFF2A2A2A);
-  static const Color _placeholderBorderColor = Color(0xFF141414);
-  static const Color _todayBorderColor = Color(0xFFCCCCCC);
-  static const Color _labelColor = Color(0xFF666666);
-  static const Color _textColor = Color(0xFFCCCCCC);
 
   final ScrollController _scrollController = ScrollController();
   double _latestHorizontalHitInset = 0;
@@ -92,6 +86,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
     final today = _dateOnly(widget.now ?? DateTime.now());
     final startOfYear = DateTime(today.year, 1, 1);
     final gridStart = startOfYear.subtract(
@@ -116,7 +111,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (metrics.showDayLabels) _buildDayLabels(metrics),
+            if (metrics.showDayLabels) _buildDayLabels(metrics, colors),
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
@@ -141,6 +136,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
                               today: today,
                               reflectionsByDate: reflectionsByDate,
                               metrics: metrics,
+                              colors: colors,
                             ),
                           ),
                         ),
@@ -169,6 +165,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
                           weekCount,
                           metrics,
                           gridWidth,
+                          colors,
                         ),
                       ),
                     ],
@@ -182,7 +179,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
     );
   }
 
-  Widget _buildDayLabels(_GridMetrics metrics) {
+  Widget _buildDayLabels(_GridMetrics metrics, ProgressThemeColors colors) {
     const labels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 
     return SizedBox(
@@ -198,9 +195,10 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: _labelColor,
+                    color: colors.textTertiary,
                     fontFamily: 'monospace',
                     fontSize: metrics.labelFontSize,
+                    letterSpacing: 0,
                   ),
                 ),
               ),
@@ -216,6 +214,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
     int weekCount,
     _GridMetrics metrics,
     double gridWidth,
+    ProgressThemeColors colors,
   ) {
     final labels = <_MonthLabel>[];
     for (var month = 1; month <= today.month; month++) {
@@ -259,9 +258,10 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
                       child: Text(
                         monthLabel.label,
                         style: TextStyle(
-                          color: _labelColor,
+                          color: colors.textTertiary,
                           fontFamily: 'monospace',
                           fontSize: metrics.labelFontSize,
+                          letterSpacing: 0,
                         ),
                       ),
                     ),
@@ -281,6 +281,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
     required DateTime today,
     required Map<DateTime, Reflection> reflectionsByDate,
     required _GridMetrics metrics,
+    required ProgressThemeColors colors,
   }) {
     return SizedBox(
       width: metrics.cellPitch,
@@ -293,6 +294,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
             today: today,
             reflection: reflectionsByDate[_dateOnly(date)],
             metrics: metrics,
+            colors: colors,
           );
         }),
       ),
@@ -305,18 +307,19 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
     required DateTime today,
     required Reflection? reflection,
     required _GridMetrics metrics,
+    required ProgressThemeColors colors,
   }) {
     final isPlaceholder = _isPlaceholderDate(date, startOfYear, today);
     final isToday = _isSameDay(date, today);
     final hasReflection = !isPlaceholder && reflection != null;
 
     final borderColor = isToday
-        ? _todayBorderColor
+        ? colors.textSecondary
         : isPlaceholder
-        ? _placeholderBorderColor
+        ? colors.subtleBorder
         : hasReflection
-        ? _filledColor
-        : _emptyBorderColor;
+        ? colors.accent
+        : colors.border;
 
     return SizedBox(
       width: metrics.cellPitch,
@@ -326,7 +329,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
           width: metrics.cellSize,
           height: metrics.cellSize,
           decoration: BoxDecoration(
-            color: hasReflection ? _filledColor : Colors.transparent,
+            color: hasReflection ? colors.accent : Colors.transparent,
             borderRadius: BorderRadius.circular(metrics.cellRadius),
             border: Border.all(color: borderColor, width: isToday ? 1.2 : 1),
           ),
@@ -385,6 +388,7 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
   }
 
   void _showReflection(BuildContext context, Reflection reflection) {
+    final colors = context.progressColors;
     final dateLabel = DateFormat.yMMMMd().format(reflection.date);
 
     showModalBottomSheet<void>(
@@ -392,9 +396,9 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           ),
           child: SafeArea(
             top: false,
@@ -411,20 +415,22 @@ class _ReflectionYearGridState extends State<ReflectionYearGrid> {
                     children: [
                       Text(
                         dateLabel,
-                        style: const TextStyle(
-                          color: _labelColor,
+                        style: TextStyle(
+                          color: colors.textTertiary,
                           fontFamily: 'monospace',
                           fontSize: 12,
+                          letterSpacing: 0,
                         ),
                       ),
                       const SizedBox(height: 10),
                       SelectableText(
                         reflection.text,
-                        style: const TextStyle(
-                          color: _textColor,
+                        style: TextStyle(
+                          color: colors.textSecondary,
                           fontFamily: 'monospace',
                           fontSize: 14,
                           height: 1.35,
+                          letterSpacing: 0,
                         ),
                       ),
                     ],

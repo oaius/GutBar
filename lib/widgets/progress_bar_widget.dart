@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class ProgressBarWidget extends StatelessWidget {
   final double percentage;
   final String primaryText;
@@ -17,34 +19,34 @@ class ProgressBarWidget extends StatelessWidget {
     this.detailText,
   });
 
-  static const _headlineStyle = TextStyle(
-    fontFamily: 'monospace',
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-    letterSpacing: 0.5,
-  );
-
-  static const _supportingStyle = TextStyle(
-    fontFamily: 'monospace',
-    fontSize: 13,
-    color: Color(0xFF888888),
-  );
-
   @override
   Widget build(BuildContext context) {
+    final colors = context.progressColors;
     final clampedPercentage = percentage.clamp(0.0, 1.0).toDouble();
+    final headlineStyle = TextStyle(
+      fontFamily: 'monospace',
+      fontSize: 22,
+      fontWeight: FontWeight.bold,
+      color: colors.textPrimary,
+      letterSpacing: 0,
+    );
+    final supportingStyle = TextStyle(
+      fontFamily: 'monospace',
+      fontSize: 13,
+      color: colors.textTertiary,
+      letterSpacing: 0,
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(primaryText, style: _headlineStyle),
+        Text(primaryText, style: headlineStyle),
         const SizedBox(height: 4),
-        Text(secondaryText, style: _supportingStyle),
+        Text(secondaryText, style: supportingStyle),
         if (detailText != null) ...[
           const SizedBox(height: 6),
-          Text(detailText!, style: _supportingStyle),
+          Text(detailText!, style: supportingStyle),
         ],
         const SizedBox(height: 16),
         ClipRRect(
@@ -55,10 +57,8 @@ class ProgressBarWidget extends StatelessWidget {
               children: [
                 LinearProgressIndicator(
                   value: clampedPercentage,
-                  backgroundColor: const Color(0xFF2A2A2A),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF00CC44),
-                  ),
+                  backgroundColor: colors.progressTrack,
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
                   minHeight: 20,
                 ),
                 Positioned.fill(
@@ -66,7 +66,7 @@ class ProgressBarWidget extends StatelessWidget {
                     child: CustomPaint(
                       painter: _TickPainter(
                         positions: tickPositions,
-                        color: Colors.white24,
+                        color: colors.progressTick,
                         inset: 3,
                       ),
                     ),
